@@ -12,16 +12,14 @@ struct Args {
 
 fn main() {
     let cli = Args::parse();
-
-    let days = problems::get_days();
-
     if !cli.input.exists() {
         println!("Input file does not exist. Did you remember to create it? Proceeding.")
     }
 
+    let days = problems::get_days();
     if let Some(day) = days.get(cli.day) {
-        day.part1(&cli.input);
-        day.part2(&cli.input);
+        (day.part1)(&cli.input);
+        (day.part2)(&cli.input);
     } else {
         println!("!!! Unknown Day !!! Did you remember to update the problems/mod.rs file?")
     }

@@ -1,4 +1,5 @@
-pub trait AoCDay {
-	fn part1(&self, input: &std::path::PathBuf);
-	fn part2(&self, input: &std::path::PathBuf);
+pub struct AoCDay {
+	pub day: u8,
+	pub part1: Box<dyn Fn(&std::path::PathBuf)>,
+	pub part2: Box<dyn Fn(&std::path::PathBuf)>
 }

@@ -1,3 +1,5 @@
+use crate::problems::aocday::AoCDay;
+
 pub mod aocday;
 
 pub mod day0;
@@ -27,9 +29,12 @@ pub mod day1;
 // pub mod day24;
 // pub mod day25;
 
-pub fn get_days() -> Vec<Box<dyn aocday::AoCDay>> {
+pub fn get_days() -> Vec<aocday::AoCDay> {
 	vec![
-        Box::new(day0::Day0 {}),
-        Box::new(day1::Day1 {}),
+        AoCDay {
+        	day: 0,
+        	part1: Box::new(day0::part1::execute),
+        	part2: Box::new(day0::part2::execute)
+        }
     ]
 }

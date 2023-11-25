@@ -17,7 +17,8 @@ fn main() {
     }
 
     let days = problems::get_days();
-    if let Some(day) = days.get(cli.day) {
+
+    if let Some(day) = days.iter().find(|&x| x.day == cli.day) {
         (day.part1)(&cli.input);
         (day.part2)(&cli.input);
     } else {

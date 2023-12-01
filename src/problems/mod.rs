@@ -31,10 +31,15 @@ pub mod day1;
 
 pub fn get_days() -> Vec<aocday::AoCDay> {
 	vec![
-        AoCDay {
-        	day: 0,
-        	part1: Box::new(day0::part1::execute),
-        	part2: Box::new(day0::part2::execute)
-        }
+		AoCDay {
+			day: 0,
+			part1: Box::new(day0::part1::execute),
+			part2: Box::new(day0::part2::execute)
+		},
+		AoCDay {
+			day: 1,
+			part1: Box::new(day1::part1::execute),
+			part2: Box::new(day1::part2::execute)
+		},
     ]
 }

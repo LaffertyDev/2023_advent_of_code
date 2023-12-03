@@ -51,7 +51,7 @@ impl Round {
 
 #[cfg(test)]
 mod tests {
-    use crate::problems::day2::game::{Game, Round};
+    use crate::problems::day2::game::{Game};
 
     #[test]
     fn input_parses() {

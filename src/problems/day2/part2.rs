@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::fs;
 use crate::problems::day2::game::Game;
 

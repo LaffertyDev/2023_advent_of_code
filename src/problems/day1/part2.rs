@@ -3,7 +3,7 @@ use std::fs;
 pub fn execute(input_path: &std::path::PathBuf) {
     let contents = fs::read_to_string(input_path).expect("Should have been able to read the file");
 
-    let lines = contents.split("\n").filter(|l| !l.is_empty());
+    let lines = contents.lines().filter(|l| !l.is_empty());
     let mut all_digits = vec![];
     for line in lines {
         // find first digit in sequence
@@ -21,7 +21,7 @@ pub fn execute(input_path: &std::path::PathBuf) {
         all_digits.push(first_digit.unwrap() * 10 + second_digit.unwrap());
     }
 
-    println!("Part 2: {:}", all_digits.iter().sum::<u32>());
+    println!("Part 2: {}", all_digits.iter().sum::<u32>());
 }
 
 fn find_digit(line: impl Iterator<Item = char>, is_reversed: bool) -> Option<u32> {

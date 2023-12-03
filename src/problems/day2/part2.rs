@@ -4,7 +4,7 @@ use crate::problems::day2::game::Game;
 pub fn execute(input_path: &std::path::PathBuf) {
     let contents = fs::read_to_string(input_path).expect("Should have been able to read the file");
     let mut result = 0;
-    for line in contents.split("\n").filter(|l| !l.is_empty()) {
+    for line in contents.lines().filter(|l| !l.is_empty()) {
         let game = Game::parse_game(line);
 
         let mut green_max = 0;
@@ -19,5 +19,5 @@ pub fn execute(input_path: &std::path::PathBuf) {
         let power = green_max * red_max * blue_max;
         result += power;
     }
-    println!("Part 2: {:}", result);
+    println!("Part 2: {}", result);
 }

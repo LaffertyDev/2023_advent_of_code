@@ -3,7 +3,7 @@ use std::fs;
 pub fn execute(input_path: &std::path::PathBuf) {
     let contents = fs::read_to_string(input_path).expect("Should have been able to read the file");
 
-    let lines = contents.split("\n").filter(|l| !l.is_empty());
+    let lines = contents.lines().filter(|l| !l.is_empty());
     let mut all_digits = vec![];
     for line in lines {
         let mut first_digit: Option<u32> = None;
@@ -26,5 +26,5 @@ pub fn execute(input_path: &std::path::PathBuf) {
         }
     }
 
-	println!("Part 1: {:}", all_digits.iter().sum::<u32>());
+	println!("Part 1: {}", all_digits.iter().sum::<u32>());
 }

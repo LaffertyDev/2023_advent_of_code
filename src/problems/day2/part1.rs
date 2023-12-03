@@ -9,7 +9,7 @@ pub fn execute(input_path: &std::path::PathBuf) {
     let blue_cube_limit = 14;
 
     let mut result = 0;
-    for line in contents.split("\n").filter(|l| !l.is_empty()) {
+    for line in contents.lines().filter(|l| !l.is_empty()) {
         let game = Game::parse_game(line);
         let mut game_valid = true;
         for round in game.rounds {
@@ -24,5 +24,5 @@ pub fn execute(input_path: &std::path::PathBuf) {
             result += game.identifier;
         }
     }
-    println!("Part 1: {:}", result);
+    println!("Part 1: {}", result);
 }

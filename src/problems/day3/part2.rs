@@ -6,14 +6,14 @@ pub fn execute(input_path: &std::path::PathBuf) {
 }
 
 fn parse_engine_counts(input: &String) -> u32 {
-    let lines = input.lines().filter(|l| !l.is_empty()).map(|l| l.chars().collect::<Vec<char>>()).collect::<Vec<Vec<char>>>();
+    let grid = input.lines().filter(|l| !l.is_empty()).map(|l| l.chars().collect::<Vec<char>>()).collect::<Vec<Vec<char>>>();
 
     let mut sum_total = 0;
-    for (row_idx, row) in lines.iter().enumerate() {
+    for (row_idx, row) in grid.iter().enumerate() {
         for (col_idx, column) in row.iter().enumerate() {
             if *column == '*' {
                 // find numbers near this, add to the sum total
-                let adjacents = get_adjacent_numbers(&lines, row_idx, col_idx);
+                let adjacents = get_adjacent_numbers(&grid, row_idx, col_idx);
                 let reals = adjacents.iter().filter(|a| a.is_some()).map(|a| a.unwrap()).collect::<Vec<u32>>();
                 if reals.len() == 2 {
                     sum_total += reals[0] * reals[1];

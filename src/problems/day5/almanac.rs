@@ -128,26 +128,35 @@ impl Almanac {
     pub fn get_lowest_seed_location_from_seed_ranges(&self) -> u64 {
         let seeds = &self.seed_ranges;
 
+        let possible_values: u64 = seeds.iter().map(|dr| dr.end - dr.start).sum();
+
         let soil = self
             .map_source_ranges_to_destination(AlmanacType::Seeds, AlmanacType::Soil, seeds);
+        assert_eq!(possible_values, soil.iter().map(|dr| dr.end - dr.start).sum());
 
         let fertilizer = self
             .map_source_ranges_to_destination(AlmanacType::Soil, AlmanacType::Fertilizer, &soil);
+        assert_eq!(possible_values, fertilizer.iter().map(|dr| dr.end - dr.start).sum());
 
         let water = self
             .map_source_ranges_to_destination(AlmanacType::Fertilizer, AlmanacType::Water, &fertilizer);
+        assert_eq!(possible_values, water.iter().map(|dr| dr.end - dr.start).sum());
 
         let light = self
             .map_source_ranges_to_destination(AlmanacType::Water, AlmanacType::Light, &water);
+        assert_eq!(possible_values, light.iter().map(|dr| dr.end - dr.start).sum());
 
         let temperature = self
             .map_source_ranges_to_destination(AlmanacType::Light, AlmanacType::Temperature, &light);
+        assert_eq!(possible_values, temperature.iter().map(|dr| dr.end - dr.start).sum());
 
         let humidity = self
             .map_source_ranges_to_destination(AlmanacType::Temperature, AlmanacType::Humidity, &temperature);
+        assert_eq!(possible_values, humidity.iter().map(|dr| dr.end - dr.start).sum());
 
         let location = self
             .map_source_ranges_to_destination(AlmanacType::Humidity, AlmanacType::Location, &humidity);
+        assert_eq!(possible_values, location.iter().map(|dr| dr.end - dr.start).sum());
 
         return location.iter().map(|r| r.start).min().unwrap().clone();
     }
@@ -202,5 +211,34 @@ humidity-to-location map:
         assert_eq!(68, almanac.seed_ranges[1].end);
         assert_eq!(35, almanac.get_lowest_seed_location_from_seed_list());
         assert_eq!(46, almanac.get_lowest_seed_location_from_seed_ranges());
+    }
+
+    #[test]
+    fn custom_ranges() {
+        let input = "seeds: 0 1 100 1
+
+seed-to-soil map:
+0 0 10
+
+soil-to-fertilizer map:
+0 0 10
+
+fertilizer-to-water map:
+0 0 10
+
+water-to-light map:
+0 0 10
+
+light-to-temperature map:
+0 0 10
+
+temperature-to-humidity map:
+10 0 10
+
+humidity-to-location map:
+20 10 10";
+
+        let almanac = Almanac::parse_input(&input);
+        assert_eq!(20, almanac.get_lowest_seed_location_from_seed_ranges());
     }
 }

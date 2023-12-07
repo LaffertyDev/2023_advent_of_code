@@ -14,7 +14,8 @@ pub enum CamelCard {
     Five,
     Four,
     Three,
-    Two
+    Two,
+    Joker
 }
 
 impl CamelCard {
@@ -33,14 +34,15 @@ impl CamelCard {
             CamelCard::Four => 4,
             CamelCard::Three => 3,
             CamelCard::Two => 2,
+            CamelCard::Joker => 1,
         }
     }
-    pub fn from_char(c: char) -> CamelCard {
+    pub fn from_char(c: char, jokers_wild: bool) -> CamelCard {
         match c {
             'A' => CamelCard::Ace,
             'K' => CamelCard::King,
             'Q' => CamelCard::Queen,
-            'J' => CamelCard::Jack,
+            'J' => if jokers_wild { CamelCard::Joker } else { CamelCard::Jack },
             'T' => CamelCard::Ten,
             '9' => CamelCard::Nine,
             '8' => CamelCard::Eight,
@@ -76,5 +78,6 @@ mod tests {
         assert!(CamelCard::Ace == CamelCard::Ace);
         assert!(CamelCard::King < CamelCard::Ace);
         assert!(CamelCard::Ace > CamelCard::King);
+        assert!(CamelCard::Two > CamelCard::Joker);
     }
 }

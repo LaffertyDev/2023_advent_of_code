@@ -10,9 +10,9 @@ pub struct Hand {
 }
 
 impl Hand {
-    pub fn parse_input(hand: &str) -> Hand {
+    pub fn parse_input(hand: &str, jokers_wild: bool) -> Hand {
         let mut lines = hand.split(' ');
-        let mut cards = lines.next().unwrap().chars().map(|c| CamelCard::from_char(c));
+        let mut cards = lines.next().unwrap().chars().map(|c| CamelCard::from_char(c, jokers_wild));
         let cards = [cards.next().unwrap(), cards.next().unwrap(), cards.next().unwrap(), cards.next().unwrap(), cards.next().unwrap()];
         let hand_type = HandType::parse_type(cards);
         Hand {
@@ -69,9 +69,9 @@ mod tests {
 
     #[test]
     fn orders_correctly() {
-        assert!(Hand::parse_input("AAAAA 1") == Hand::parse_input("AAAAA 1"));
-        assert!(Hand::parse_input("AAAAJ 1") < Hand::parse_input("AAAAA 1"));
-        assert!(Hand::parse_input("AAAAA 1") > Hand::parse_input("AAAAJ 1"));
-        assert!(Hand::parse_input("AAAAA 1") > Hand::parse_input("AAAJJ 1"));
+        assert!(Hand::parse_input("AAAAA 1", false) == Hand::parse_input("AAAAA 1", false));
+        assert!(Hand::parse_input("AAAAJ 1", false) < Hand::parse_input("AAAAA 1", false));
+        assert!(Hand::parse_input("AAAAA 1", false) > Hand::parse_input("AAAAJ 1", false));
+        assert!(Hand::parse_input("AAAAA 1", false) > Hand::parse_input("AAAJJ 1", false));
     }
 }

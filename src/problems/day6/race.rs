@@ -26,8 +26,8 @@ impl Race {
 
     pub fn parse_as_single(sheet: &str) -> Race {
         let mut lines = sheet.lines().filter(|l| !l.is_empty());
-        let mut time = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse::<u64>().unwrap();
-        let mut distance = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse::<u64>().unwrap();
+        let time = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse::<u64>().unwrap();
+        let distance = lines.next().unwrap().split_whitespace().skip(1).collect::<String>().parse::<u64>().unwrap();
 
         Race {
             series: vec![Series {

@@ -1,7 +1,6 @@
-use std::cmp::{max, Ordering};
+use std::cmp::{Ordering};
 use std::collections::HashMap;
 use crate::problems::day7::camel_cards::CamelCard;
-use crate::problems::day7::hand_type::HandType::FullHouse;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HandType {
@@ -36,14 +35,14 @@ impl HandType {
         let key_count = hashed_hand.keys().filter(|c| *c != &CamelCard::Joker).count();
         let max_count = hashed_hand
             .iter()
-            .filter(|(k, v)| *k != &CamelCard::Joker)
-            .map(|(k, v)| v)
+            .filter(|(k, _v)| *k != &CamelCard::Joker)
+            .map(|(_k, v)| v)
             .max()
             .unwrap_or(&0);
         let joker_count = hashed_hand
             .iter()
-            .filter(|(k, v)| *k == &CamelCard::Joker)
-            .map(|(k, v)| v)
+            .filter(|(k, _v)| *k == &CamelCard::Joker)
+            .map(|(_k, v)| v)
             .sum();
 
         if max_count + joker_count >= 5 {

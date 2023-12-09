@@ -1,15 +1,13 @@
 use crate::problems::day7::camel_hand::Hand;
 
 pub struct CamelGame {
-    hands: Vec<Hand>,
-    jokers_wild: bool
+    hands: Vec<Hand>
 }
 
 impl CamelGame {
     pub fn parse(input: &str, jokers_wild: bool) -> CamelGame {
         CamelGame {
-            hands: input.lines().filter(|l| !l.is_empty()).map(|l| Hand::parse_input(l, jokers_wild)).collect(),
-            jokers_wild
+            hands: input.lines().filter(|l| !l.is_empty()).map(|l| Hand::parse_input(l, jokers_wild)).collect()
         }
     }
 

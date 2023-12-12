@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::problems::day10::pipe::PipeTile;
 use crate::problems::day10::pipe_node::PipeNode;
 use crate::problems::day10::position::Position;
@@ -6,11 +7,11 @@ pub struct PipeGrid {
     grid: Vec<Vec<PipeNode>>
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum GridStatus {
     Path,
-    LeftSide,
-    RightSide,
+    GroupA,
+    GroupB,
     Unknown
 }
 
@@ -185,7 +186,7 @@ impl PipeGrid {
                         next_node = &connections[0];
                     }
                 } else {
-                    break;
+                    break; // this path is a dead-end. Ignore it.
                 }
 
                 path.push(next_node.clone());
@@ -200,94 +201,187 @@ impl PipeGrid {
         return (path.len() + 1) / 2;
     }
 
+    pub fn get_node_east_of(&self, node_pos: &Position) -> Option<Position> {
+        if node_pos.col == self.grid[0].len() - 1 {
+            return None;
+        }
+
+        return Some(Position::new(node_pos.row, node_pos.col + 1));
+    }
+
+    pub fn get_node_west_of(&self, node_pos: &Position) -> Option<Position> {
+        if node_pos.col == 0 {
+            return None;
+        }
+
+        return Some(Position::new(node_pos.row, node_pos.col - 1));
+    }
+
+    pub fn get_node_north_of(&self, node_pos: &Position) -> Option<Position> {
+        if node_pos.row == 0 {
+            return None;
+        }
+
+        return Some(Position::new(node_pos.row - 1, node_pos.col));
+    }
+    pub fn get_node_south_of(&self, node_pos: &Position) -> Option<Position> {
+        if node_pos.row == self.grid.len() - 1 {
+            return None;
+        }
+
+        return Some(Position::new(node_pos.row + 1, node_pos.col));
+    }
+
     pub fn find_area_enclosed_by_loop(&self) -> usize {
         let path = self.find_loop();
 
-        // flood fill every node that isn't part of the path
-        // if a node touches the edge, or touches an edge that touches an edge, we know its outside
-
-        // loop has a direction to it.
-        // Imagine you have your hand to the wall. You are either inside the wall or outside the wall.
-
-        // step one
-        // from the edge, find a node that touches the path
-        // you now know you are outside of the loop. Cross the loop.
-
-        // now, stay pointed in a direction, follow the loop
-        // we know that every node that touches every node within the loops boundaries is on the INSIDE.
-        // Every node that is INSIDE will touch either an inside node or part of the loop
-        // queue this node
-
-        // now we have all possible edge nodes
-        // so pop them off and check boundaries
-
-        // while queue is not empty
-            // for each top, left, bottom ,and right
-                // if node is marked, ignore
-                // if node is within the path, ignore
-                // other node, queue it and mark it
-
-        // now we have marked all inside nodes
-        // just return the count of them.
-
-        // there is no possibly where above this is included within the line, so we know that nodes below are within the set
-
         let mut inside_marked_grid_map: Vec<Vec<GridStatus>> = vec![vec![GridStatus::Unknown; self.grid[0].len()]; self.grid.len()];
-        let nodes_to_explore: Vec<Position> = vec![];
-
-        for node in &path {
-            inside_marked_grid_map[node.row][node.col] = GridStatus::Path;
+        for p in &path {
+            inside_marked_grid_map[p.row][p.col] = GridStatus::Path;
         }
 
+        let mut nodes_to_expand: Vec<Position> = vec![];
+        for index in 0..path.len() {
+            let current_node = &path[index];
+            let next_node = if index < path.len() - 1 { &path[index + 1] } else { &path[0] };
 
-        // first we need to figure out which way is left which way is right...
-        let first_node = &path[1];
-        let last_node = path.last().unwrap();
-        let start_tile_is_actually = PipeTile::derive_tile(last_node, first_node);
-        for p in &path {
-            let node = self.get_node(p);
-            let tile = if node.is_start() { &start_tile_is_actually } else { &node.tile };
+            // Group A is Left going vertical
+            // Group B is Right going vertical
+            let vertical_direction = current_node.row.cmp(&next_node.row);
+            let horizontal_direction = current_node.col.cmp(&next_node.col);
 
-            let is_going_up = false;
-            let is_going_right = false;
-
-            match tile {
+            let north = self.get_node_north_of(current_node).and_then(|node| if inside_marked_grid_map[node.row][node.col] != GridStatus::Path { Some(node) } else { None });
+            let west = self.get_node_west_of(current_node).and_then(|node| if inside_marked_grid_map[node.row][node.col] != GridStatus::Path { Some(node) } else { None });
+            let south = self.get_node_south_of(current_node).and_then(|node| if inside_marked_grid_map[node.row][node.col] != GridStatus::Path { Some(node) } else { None });
+            let east = self.get_node_east_of(current_node).and_then(|node| if inside_marked_grid_map[node.row][node.col] != GridStatus::Path { Some(node) } else { None });
+            match self.grid[current_node.row][current_node.col].tile {
                 PipeTile::Horizontal => {
-                    // mark top as group 1
-                    // bottom as group 2
-                    if is_going_right {
-                        if (p.row > 0) {
-
-                        }
-                    } else {
-
+                    if let Some(node) = north {
+                        inside_marked_grid_map[node.row][node.col] = if horizontal_direction == Ordering::Greater { GridStatus::GroupA } else { GridStatus::GroupB };
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = south {
+                        inside_marked_grid_map[node.row][node.col] = if horizontal_direction == Ordering::Less { GridStatus::GroupA } else { GridStatus::GroupB };
+                        nodes_to_expand.push(node);
                     }
                 },
                 PipeTile::Vertical => {
-                    // mark left as group 1
-                    // mark right as group 2
-                },
-                PipeTile::BendSouthWest => {
-                    // mark right as group 1
-                    // mark bottom as group 1
+                    if let Some(node) = west {
+                        inside_marked_grid_map[node.row][node.col] = if vertical_direction == Ordering::Less { GridStatus::GroupA } else { GridStatus::GroupB };
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = east {
+                        inside_marked_grid_map[node.row][node.col] = if vertical_direction == Ordering::Greater { GridStatus::GroupA } else { GridStatus::GroupB };
+                        nodes_to_expand.push(node);
+                    }
                 },
                 PipeTile::BendNorthEast => {
-                    // mark top as group 1
-                    // mark left as group 1
+                    let nodes_are = if current_node.row == next_node.row { GridStatus::GroupA } else { GridStatus::GroupB };
+                    if let Some(node) = west {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = north {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
                 },
                 PipeTile::BendNorthWest => {
-                    // mark top as group 1
-                    // mark right as group 1
+                    let nodes_are = if current_node.col == next_node.col { GridStatus::GroupA } else { GridStatus::GroupB };
+                    if let Some(node) = east {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = north {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
                 },
                 PipeTile::BendSouthEast => {
-                    // mark left as group 1
-                    // mark bottom as group 1
+                    let nodes_are = if current_node.col == next_node.col { GridStatus::GroupA } else { GridStatus::GroupB };
+                    if let Some(node) = west {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = south {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
                 },
-                _ => panic!()
-            };
+                PipeTile::BendSouthWest => {
+                    let nodes_are = if current_node.row == next_node.row { GridStatus::GroupA } else { GridStatus::GroupB };
+                    if let Some(node) = east {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
+                    if let Some(node) = south {
+                        inside_marked_grid_map[node.row][node.col] = nodes_are.clone();
+                        nodes_to_expand.push(node);
+                    }
+                },
+                PipeTile::StartPosition => {
+                    // I really don't want to derive the start tile
+                    println!("Ignoring start position. I can't imagine a state where this would matter.");
+                }
+                _ => panic!("Impossible State")
+            }
         }
 
-        return path.len() / 2;
+        let mut is_group_a_edge = None;
+        while let Some(node) = nodes_to_expand.pop() {
+            println!("Iter");
+            if inside_marked_grid_map[node.row][node.col] == GridStatus::Path {
+                panic!("Woh there cowboy");
+            }
+            let adjacent_nodes = vec![self.get_node_west_of(&node), self.get_node_south_of(&node), self.get_node_east_of(&node), self.get_node_north_of(&node)];
+            for adjacent in adjacent_nodes {
+                if let Some(adjacent_pos) = adjacent {
+                    if inside_marked_grid_map[adjacent_pos.row][adjacent_pos.col] == GridStatus::Unknown {
+                        if inside_marked_grid_map[node.row][node.col] == GridStatus::Path {
+                            println!("Broken: {}, {}", node.row, node.col);
+                        }
+                        inside_marked_grid_map[adjacent_pos.row][adjacent_pos.col] = inside_marked_grid_map[node.row][node.col].clone();
+                        nodes_to_expand.push(adjacent_pos);
+                    }
+                } else {
+                    if inside_marked_grid_map[node.row][node.col] != GridStatus::Path {
+                        is_group_a_edge = if inside_marked_grid_map[node.row][node.col] == GridStatus::GroupA { Some(true) } else { Some(false) };
+                    }
+                }
+            }
+        }
+
+        // pretty print
+        for row in &inside_marked_grid_map {
+            print!("\r\n");
+            for node in row {
+                let dbg = match node {
+                    GridStatus::GroupA => 'A',
+                    GridStatus::GroupB => 'B',
+                    GridStatus::Unknown => '*',
+                    GridStatus::Path => 'P',
+                };
+                print!("{}", dbg);
+            }
+        }
+        print!("\r\n");
+
+        let mut inside_nodes = 0;
+        if let Some(is_group_a_edge) = is_group_a_edge {
+            let group_that_is_inside = if is_group_a_edge { GridStatus::GroupB } else { GridStatus::GroupA };
+            for row in &inside_marked_grid_map {
+                for node in row {
+                    if node == &group_that_is_inside {
+                        inside_nodes += 1;
+                    }
+                }
+            }
+
+        } else {
+            println!("Did not find an edge... I don't even know what to do here. Just count non-empty nodes?")
+        }
+
+        inside_nodes
     }
 }
 
@@ -329,6 +423,23 @@ LJ.LJ";
 .|..|.|..|.
 .L--J.L--J.
 ...........";
+
+        let grid = PipeGrid::parse(input);
+        assert_eq!(4, grid.find_area_enclosed_by_loop());
+    }
+
+    #[test]
+    fn part2_squeeze() {
+        let input = "..........
+.S------7.
+.|F----7|.
+.||....||.
+.||....||.
+.|L-7F-J|.
+.|..||..|.
+.L--JL--J.
+..........";
+
 
         let grid = PipeGrid::parse(input);
         assert_eq!(4, grid.find_area_enclosed_by_loop());

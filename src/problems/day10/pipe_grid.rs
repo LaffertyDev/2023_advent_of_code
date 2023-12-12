@@ -321,7 +321,7 @@ impl PipeGrid {
                 },
                 PipeTile::StartPosition => {
                     // I really don't want to derive the start tile
-                    println!("Ignoring start position. I can't imagine a state where this would matter.");
+                    //println!("Ignoring start position. I can't imagine a state where this would matter.");
                 }
                 _ => panic!("Impossible State")
             }
@@ -329,10 +329,6 @@ impl PipeGrid {
 
         let mut is_group_a_edge = None;
         while let Some(node) = nodes_to_expand.pop() {
-            println!("Iter");
-            if inside_marked_grid_map[node.row][node.col] == GridStatus::Path {
-                panic!("Woh there cowboy");
-            }
             let adjacent_nodes = vec![self.get_node_west_of(&node), self.get_node_south_of(&node), self.get_node_east_of(&node), self.get_node_north_of(&node)];
             for adjacent in adjacent_nodes {
                 if let Some(adjacent_pos) = adjacent {
@@ -352,19 +348,19 @@ impl PipeGrid {
         }
 
         // pretty print
-        for row in &inside_marked_grid_map {
-            print!("\r\n");
-            for node in row {
-                let dbg = match node {
-                    GridStatus::GroupA => 'A',
-                    GridStatus::GroupB => 'B',
-                    GridStatus::Unknown => '*',
-                    GridStatus::Path => 'P',
-                };
-                print!("{}", dbg);
-            }
-        }
-        print!("\r\n");
+        // for row in &inside_marked_grid_map {
+        //     print!("\r\n");
+        //     for node in row {
+        //         let dbg = match node {
+        //             GridStatus::GroupA => 'A',
+        //             GridStatus::GroupB => 'B',
+        //             GridStatus::Unknown => '*',
+        //             GridStatus::Path => 'P',
+        //         };
+        //         print!("{}", dbg);
+        //     }
+        // }
+        // print!("\r\n");
 
         let mut inside_nodes = 0;
         if let Some(is_group_a_edge) = is_group_a_edge {
@@ -376,7 +372,6 @@ impl PipeGrid {
                     }
                 }
             }
-
         } else {
             println!("Did not find an edge... I don't even know what to do here. Just count non-empty nodes?")
         }

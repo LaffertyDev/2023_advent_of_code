@@ -13,7 +13,7 @@ mod day7;
 mod day8;
 mod day9;
 mod day10;
-// pub mod day11;
+mod day11;
 // pub mod day12;
 // pub mod day13;
 // pub mod day14;
@@ -85,6 +85,11 @@ pub fn get_days() -> Vec<aocday::AoCDay> {
 			day: 10,
 			part1: Box::new(day10::part1::execute),
 			part2: Box::new(day10::part2::execute)
+		},
+		AoCDay {
+			day: 11,
+			part1: Box::new(day11::part1::execute),
+			part2: Box::new(day11::part2::execute)
 		},
     ]
 }

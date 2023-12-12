@@ -83,6 +83,7 @@ mod tests {
         assert_eq!(vec![10..15, 10..15], mapping.map_range_to_destination(&(5..15)));
     }
 
+    #[test]
     fn multiple_ranges_maps() {
         let mapping = AlmanacMapping {
             source_type: AlmanacType::Fertilizer,

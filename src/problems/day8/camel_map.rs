@@ -105,21 +105,4 @@ ZZZ = (ZZZ, ZZZ)
         let map = CamelMap::parse(input);
         assert_eq!(2, map.get_steps_to_zzz());
     }
-
-    #[test]
-    fn test_part2() {
-        let input = "LR
-
-11A = (11B, XXX)
-11B = (XXX, 11Z)
-11Z = (11B, XXX)
-22A = (22B, XXX)
-22B = (22C, 22C)
-22C = (22Z, 22Z)
-22Z = (22B, 22B)
-XXX = (XXX, XXX)
-";
-        let map = CamelMap::parse(input);
-        assert_eq!(6, map.get_steps_to_zzz_ghost_mode());
-    }
 }

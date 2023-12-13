@@ -152,7 +152,7 @@ impl SpringGroup {
         permutation_map.entry(spring_group).or_insert(possible_child_permutations + 1);
         possible_child_permutations + 1
     }
-
+    #[allow(dead_code)]
     pub fn get_permutation(springs: &[SpringStatus], damaged_spring_group: &[usize]) -> usize {
         if springs.len() == 0 || damaged_spring_group.len() == 0 {
             // base case

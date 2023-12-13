@@ -1,4 +1,6 @@
-#[derive(PartialEq, Clone, Copy)]
+use std::collections::HashMap;
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub enum SpringStatus {
     Functional,
     Damaged,
@@ -16,12 +18,20 @@ impl SpringStatus {
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct SpringGroup {
     springs: Vec<SpringStatus>,
     maps: Vec<usize>
 }
 
 impl SpringGroup {
+    pub fn init(springs: &[SpringStatus], maps: &[usize]) -> SpringGroup {
+        SpringGroup {
+            springs: springs.to_vec(),
+            maps: maps.to_vec()
+        }
+    }
+
     pub fn parse(line: &str, repeat_counts: usize) -> SpringGroup {
         let mut split = line.split_whitespace();
         let mut springs: Vec<SpringStatus> = split.next().unwrap().chars().map(|c| SpringStatus::parse(c)).collect();
@@ -42,10 +52,118 @@ impl SpringGroup {
         }
     }
 
+    pub fn get_permutation_dynamic(spring_group: SpringGroup, permutation_map: &mut HashMap<SpringGroup, usize>) -> usize {
+        if let Some(permutations) = permutation_map.get(&spring_group) {
+            return *permutations;
+        }
+
+        if spring_group.springs.len() == 0 || spring_group.maps.len() == 0 {
+            // base case
+            return 0;
+        }
+
+        let mut possible_child_permutations = 0;
+        let mut damaged_spring_group_index = 0;
+        let mut s_index = 0;
+        while s_index < spring_group.springs.len() && damaged_spring_group_index < spring_group.maps.len() {
+            if spring_group.springs[s_index] == SpringStatus::Functional {
+                s_index += 1;
+                continue;
+            }
+
+            let group_length = spring_group.maps[damaged_spring_group_index];
+            if s_index + group_length > spring_group.springs.len() {
+                // the length of this group is greater than the remaining elements
+                // therefor, this is not a valid permutation
+                permutation_map.entry(spring_group).or_insert(possible_child_permutations);
+                return possible_child_permutations;
+            }
+
+            for forward in s_index..s_index+group_length {
+                match spring_group.springs[forward] {
+                    SpringStatus::Functional => {
+                        // the group length contains a Functional node
+                        // so this branch is dead
+                        permutation_map.entry(spring_group).or_insert(possible_child_permutations);
+                        return possible_child_permutations;
+                    },
+                    SpringStatus::Damaged => {
+                        continue;
+                    },
+                    SpringStatus::Unknown => {
+                        if forward == s_index {
+                            // special case, we are at a branch at the start
+                            // if the start node is FUNCTIONAL, then there are still possible permutations
+                            // if the start node is DAMAGED, then we simple continue our scan
+                            let sub_spring_group = SpringGroup::init(&spring_group.springs[s_index + 1..], &spring_group.maps[damaged_spring_group_index..]);
+                            let sub_permutations = SpringGroup::get_permutation_dynamic(sub_spring_group, permutation_map);
+                            possible_child_permutations += sub_permutations;
+                        } else {
+                            // we found an unknown!
+                            // this could be functional or non-functional
+                            // functional means the current permutations cease because we can't resolve the group dynamic
+                            // nonfunctional means we continue checking the group dynamics
+                            // so that means there is no branching states to check here
+                            // assume this is non functional
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            if s_index + group_length == spring_group.springs.len() {
+                // special case, we've reached the end. We're done! And we've satisfied the constraints!
+                s_index += group_length + 1;
+                damaged_spring_group_index += 1;
+                continue;
+            }
+
+            if spring_group.springs[s_index + group_length] == SpringStatus::Damaged {
+                // this is an invalid group
+                // because the node after the group is not a Functional node.
+                permutation_map.entry(spring_group).or_insert(possible_child_permutations);
+                return possible_child_permutations;
+            } else {
+                // this is either Functional or an Unknown
+                // if it is an unknown, it is either Functional or Damaged
+                // if it is damaged, this is an invalid group target
+                // so there is only one possible scenario where this is a permutation
+                s_index += group_length + 1;
+                damaged_spring_group_index += 1;
+            }
+        }
+
+        // we have exhausted either the groups or the nodes
+        // make sure if we exhausted the groups, no more Damaged nodes remain
+        for remaining in s_index..spring_group.springs.len() {
+            if spring_group.springs[remaining] == SpringStatus::Damaged {
+                permutation_map.entry(spring_group).or_insert(possible_child_permutations);
+                return possible_child_permutations;
+            }
+        }
+
+        // make sure if we exhausted the nodes, that no more groups remain
+        if damaged_spring_group_index < spring_group.maps.len() {
+            permutation_map.entry(spring_group).or_insert(possible_child_permutations);
+            return possible_child_permutations; // did not satisfy constraints
+        }
+
+        // we successfully satisfied the constraints
+        permutation_map.entry(spring_group).or_insert(possible_child_permutations + 1);
+        possible_child_permutations + 1
+    }
+
     pub fn get_permutation(springs: &[SpringStatus], damaged_spring_group: &[usize]) -> usize {
         if springs.len() == 0 || damaged_spring_group.len() == 0 {
             // base case
             return 0;
+        }
+
+        // figure out how many damaged nodes are in the group
+        let damaged_nodes_count = damaged_spring_group.iter().sum();
+        let damaged_or_unknown_springs_count = springs.iter().filter(|s| s != &&SpringStatus::Functional).count();
+        if damaged_or_unknown_springs_count < damaged_nodes_count {
+            return 0; // this is an invalid path
         }
 
         let mut possible_child_permutations = 0;
@@ -133,9 +251,7 @@ impl SpringGroup {
     }
 
     pub fn get_permutations(&self) -> usize {
-        // we just move towards progressively sliding windows until the entire collection is reached
-        // ez pz
-        SpringGroup::get_permutation(&self.springs[..], &self.maps[..])
+        SpringGroup::get_permutation_dynamic(self.clone(), &mut HashMap::new())
     }
 }
 

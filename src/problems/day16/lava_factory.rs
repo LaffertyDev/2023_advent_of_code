@@ -35,15 +35,46 @@ impl LavaFactory {
         })
     }
 
-    pub fn compute_energized(&self) -> usize {
-        // laser starts in the top left moving right
+    pub fn compute_maximum_energy(&self) -> usize {
+        let mut maximum_energy = 0;
+        for row in 0..self.grid.len() {
+            maximum_energy = std::cmp::max(maximum_energy, self.compute_energized_with_start(LaserPoint {
+                row,
+                col: 0,
+                row_vel: 0,
+                col_vel: 1
+            }));
+
+            maximum_energy = std::cmp::max(maximum_energy, self.compute_energized_with_start(LaserPoint {
+                row,
+                col: self.grid[row].len() - 1,
+                row_vel: 0,
+                col_vel: -1
+            }));
+        }
+
+        for col in 0..self.grid.len() {
+            maximum_energy = std::cmp::max(maximum_energy, self.compute_energized_with_start(LaserPoint {
+                row: 0,
+                col: col,
+                row_vel: 1,
+                col_vel: 0
+            }));
+
+            maximum_energy = std::cmp::max(maximum_energy, self.compute_energized_with_start(LaserPoint {
+                row: self.grid.len() - 1,
+                col: 0,
+                row_vel: -1,
+                col_vel: 0
+            }));
+        }
+
+        maximum_energy
+    }
+
+    fn compute_energized_with_start(&self, starting_node: LaserPoint) -> usize {
         let mut energized_grid_points: Vec<LaserPoint> = vec![];
-        let mut active_laser_paths = vec![LaserPoint {
-            row: 0,
-            col: 0,
-            row_vel: 0,
-            col_vel: 1
-        }];
+        let mut active_laser_paths = vec![starting_node];
         while let Some(active_laser) = active_laser_paths.pop() {
             if let Some(_) = energized_grid_points.iter().find(|visited_laser| **visited_laser == active_laser) {
                 continue; // this path has been explored already. It could end up being recursive, so ignore it -- its already defined
@@ -79,6 +110,15 @@ impl LavaFactory {
         energized_tiles.dedup();
         energized_tiles.len()
     }
+
+    pub fn compute_energized(&self) -> usize {
+        self.compute_energized_with_start(LaserPoint {
+            row: 0,
+            col: 0,
+            row_vel: 0,
+            col_vel: 1
+        })
+    }
 }
 
 #[cfg(test)]
@@ -99,5 +139,21 @@ mod tests {
 ..//.|....";
         let factory = LavaFactory::parse(input).unwrap();
         assert_eq!(46, factory.compute_energized());
+    }
+
+    #[test]
+    fn part2() {
+        let input = ".|...\\....
+|.-.\\.....
+.....|-...
+........|.
+..........
+.........\\
+..../.\\\\..
+.-.-/..|..
+.|....-|.\\
+..//.|....";
+        let factory = LavaFactory::parse(input).unwrap();
+        assert_eq!(51, factory.compute_maximum_energy());
     }
 }

@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Hash, Eq, Clone)]
 pub enum Tile {
     CubeRock,
     Empty,
@@ -18,7 +19,7 @@ impl fmt::Display for Tile {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Hash, Eq, Debug)]
 pub enum TiltDirection {
     Up,
     Down,
@@ -61,6 +62,7 @@ impl Platform {
         load
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         for row in 0..self.grid.len() {
             for col in 0..self.grid[row].len() {
@@ -71,23 +73,25 @@ impl Platform {
         print!("\n");
     }
 
-    // idea 1 was using dynamic programming
-    // but the load counts are never the same
-
-    // idea 2 -- instead of iterating over the array N to determine cycle length
-    // go node-by-node
-        // if I hit a rounded node, it joins my movement group
-        // update all nodes in the movement group at once
-
-    pub fn spin(&mut self, cycles: usize) {
-        let directions = vec![TiltDirection::Up, TiltDirection::Left, TiltDirection::Down, TiltDirection::Right];
-        for cycle in 0..cycles {
-            if cycle % 10000 == 0 {
-                println!("Cycle {}%. {} / {}", (cycle as f64 / cycles as f64) * 100f64, cycle, cycles);
+    pub fn spin(&mut self, cycles_to_run: usize) {
+        let mut cycle_solutions = HashMap::new();
+        let mut cycle_index = 0;
+        while cycle_index < cycles_to_run {
+            let directions = vec![TiltDirection::Up, TiltDirection::Left, TiltDirection::Down, TiltDirection::Right];
+            for direction in directions {
+                self.tilt(&direction);
+                if let Some(cycle_starts_at_idx) = cycle_solutions.get(&(self.grid.to_vec())) {
+                    // advance the index to the index N cycles ahead
+                    let cycle_length = cycle_index - cycle_starts_at_idx;
+                    let number_of_cycles = (cycles_to_run - cycle_starts_at_idx) / cycle_length;
+                    let final_cycle_start_index = number_of_cycles * cycle_length + cycle_starts_at_idx;
+                    cycle_index = final_cycle_start_index;
+                } else {
+                    cycle_solutions.insert(self.grid.to_vec(), cycle_index);
+                }
             }
 
-            let direction = &directions[cycle % 4];
-            self.tilt(direction);
+            cycle_index += 1;
         }
     }
 
@@ -172,9 +176,26 @@ O.#..O.#.#
 #OO..#....
 ";
         let mut grid = Platform::parse(input).unwrap();
-        grid.print();
         grid.tilt(&TiltDirection::Up);
-        grid.print();
         assert_eq!(136, grid.compute_load());
+    }
+
+    #[test]
+    fn part2() {
+        let input = "O....#....
+O.OO#....#
+.....##...
+OO.#O....O
+.O.....O#.
+O.#..O.#.#
+..O..#O..O
+.......O..
+#....###..
+#OO..#....
+";
+        let mut grid = Platform::parse(input).unwrap();
+        grid.spin(1000000000);
+
+        assert_eq!(64, grid.compute_load());
     }
 }

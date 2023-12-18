@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::VecDeque;
 
 pub struct FactoryCity {
@@ -39,6 +39,17 @@ impl FactoryCity {
         }
     }
 
+    fn get_smallest_cost_to_point<'a>(map: &'a HashMap<ExplorationVertex, u64>, row: usize, col: usize, min_path: usize) -> Option<u64> {
+        let mut smallest_cost = None;
+        for (p, c) in map.iter() {
+            if p.point.row == row && p.point.col == col && (smallest_cost.is_none() || *c < smallest_cost.unwrap() && p.same_direction_count >= min_path) {
+                smallest_cost = Some(*c);
+            }
+        }
+
+        return smallest_cost;
+    }
+
     fn rotate_velocity_clockwise(vel: (i64, i64)) -> (i64, i64) {
         let (row_vel, col_vel) = vel;
 
@@ -62,7 +73,7 @@ impl FactoryCity {
     }
 
 
-    pub fn compute_lowest_heat_loss(&self) -> u64 {
+    pub fn compute_lowest_heat_loss(&self, minimum_stopping_distance: usize, maximum_straight: usize) -> u64 {
         // start in top left
         // goal is bottom right
         let end_row = self.grid.len() - 1;
@@ -79,7 +90,8 @@ impl FactoryCity {
             same_direction_count: 1
         });
 
-        let mut minimum_pathing_map: HashMap<(usize, usize), u64> = HashMap::new();
+        let mut minimum_pathing_map: HashMap<ExplorationVertex, u64> = HashMap::new();
+        let mut exploration_set = HashSet::new();
         while let Some(vertex) = vertices.pop_front() {
             if vertex.point.row == end_row && vertex.point.col == end_col {
                 // we've reached the end
@@ -87,31 +99,39 @@ impl FactoryCity {
                 break;
             }
 
-            let eligible_paths = [
-                FactoryCity::rotate_velocity_clockwise((vertex.point.vel_row, vertex.point.vel_col)),
-                FactoryCity::rotate_velocity_counter_clockwise((vertex.point.vel_row, vertex.point.vel_col)),
-                (vertex.point.vel_row, vertex.point.vel_col)
+            let eligible_directions = [
+                (FactoryCity::rotate_velocity_clockwise((vertex.point.vel_row, vertex.point.vel_col)), 1),
+                (FactoryCity::rotate_velocity_counter_clockwise((vertex.point.vel_row, vertex.point.vel_col)), 1),
+                ((vertex.point.vel_row, vertex.point.vel_col), vertex.same_direction_count + 1)
             ];
 
-            for (p_vel_row, p_vel_col) in eligible_paths {
-                let direction_count = if p_vel_row == vertex.point.vel_row && p_vel_col == vertex.point.vel_col { vertex.same_direction_count + 1 } else { 1 };
-                if (p_vel_row < 0 && vertex.point.row == 0) || (p_vel_row > 0 && vertex.point.row == end_row) {
-                    continue;
+            for ((p_vel_row, p_vel_col), duration) in eligible_directions {
+                // determine minimum distance forward to get to a valid destination node
+                // then check to see if its valid
+                let minimum_nodes_forward = if duration >= minimum_stopping_distance { 1 } else { minimum_stopping_distance + 1 - duration };
+                let forward_row = (p_vel_row * minimum_nodes_forward as i64).abs() as usize;
+                let forward_column = (p_vel_col * minimum_nodes_forward as i64).abs() as usize;
+                if (p_vel_row < 0 && vertex.point.row < forward_row) || (p_vel_row > 0 && vertex.point.row + forward_row > end_row) {
+                    continue; // not enough room to go in this direction
                 }
 
-                if (p_vel_col < 0 && vertex.point.col == 0) || (p_vel_col > 0 && vertex.point.col == end_col) {
-                    continue;
+                if (p_vel_col < 0 && vertex.point.col < forward_column) || (p_vel_col > 0 && vertex.point.col + forward_column > end_col) {
+                    continue; // not enough room to go in this direction
                 }
 
-                if direction_count > 3 {
-                    continue;
+                if vertex.same_direction_count < minimum_stopping_distance && p_vel_row != vertex.point.vel_row && p_vel_col != vertex.point.vel_col {
+                    continue; // cannot turn yet, skip it
+                }
+
+                if p_vel_row == vertex.point.vel_row && p_vel_col == vertex.point.vel_col && duration > maximum_straight {
+                    // discard this node if the minimum forward distance reaches an edge
+                    continue; // cannot continue straight
                 }
 
                 let next_node_row = ((vertex.point.row as i64) + p_vel_row) as usize;
                 let next_node_col = ((vertex.point.col as i64) + p_vel_col) as usize;
 
-                // the cost to get to the next node is currently equal to the cost to myself
-                let cost_to_me = minimum_pathing_map.get(&vertex.point.get_index()).unwrap_or(&0);
+                let cost_to_me = minimum_pathing_map.get(&vertex).unwrap_or(&0);
                 let potential_cost = *cost_to_me + self.grid[next_node_row][next_node_col];
 
                 let next_node = ExplorationVertex {
@@ -121,31 +141,56 @@ impl FactoryCity {
                         vel_row: p_vel_row,
                         vel_col: p_vel_col,
                     },
-                    same_direction_count: direction_count
+                    same_direction_count: duration
                 };
 
-                let has_explored = minimum_pathing_map.contains_key(&next_node.point.get_index());
-
-                minimum_pathing_map.entry(next_node.point.get_index()).and_modify(|current_cost| {
+                minimum_pathing_map.entry(next_node.clone()).and_modify(|current_cost| {
                     // is this path a better path than current?
                     if potential_cost < *current_cost {
                         *current_cost = potential_cost
                     }
                 }).or_insert(potential_cost);
 
-                if !has_explored {
-                    vertices.push_back(next_node.clone()); // todo rust smell clone should be unnecessary
+                // Optimization
+                // ExplorationSet contains the Future nodes
+                // i.e. if come from bottom, then top and right can share with left
+                if !exploration_set.contains(&next_node) {
+                    vertices.push_back(next_node.clone());
+                    exploration_set.insert(next_node.clone());
                 }
-
-                vertices.make_contiguous().sort_unstable_by(|a, b| {
-                    let a_cost =  minimum_pathing_map.get(&a.point.get_index()).unwrap();
-                    let b_cost =  minimum_pathing_map.get(&b.point.get_index()).unwrap();
-                    a_cost.cmp(b_cost)
-                });
             }
+
+            vertices.make_contiguous().sort_by(|a, b| {
+                let a_cost =  minimum_pathing_map.get(&a).unwrap();
+                let b_cost =  minimum_pathing_map.get(&b).unwrap();
+                a_cost.cmp(b_cost)
+            });
         }
 
-        return *minimum_pathing_map.get(&(end_row, end_col)).unwrap();
+        // println!("Debug:");
+        // for row in 0..self.grid.len() {
+        //     for col in 0..self.grid[0].len() {
+        //         if let Some(traversed) = FactoryCity::get_smallest_cost_to_point(&minimum_pathing_map, row, col, minimum_stopping_distance) {
+        //             if traversed < 10 {
+        //                 print!("  ");
+        //             } else if traversed < 100 {
+        //                 print!(" ");
+        //             } else {
+        //                 print!("");
+        //             }
+        //             print!("{}", traversed);
+        //         } else {
+        //             print!("  -");
+        //         }
+        //
+        //         print!("(+{})", self.grid[row][col]);
+        //         print!(", ");
+        //     }
+        //
+        //     print!("\r\n");
+        // }
+
+        return FactoryCity::get_smallest_cost_to_point(&minimum_pathing_map, end_row, end_col, minimum_stopping_distance).unwrap();
     }
 }
 
@@ -174,23 +219,43 @@ mod tests {
 
 ";
         let factory_city = FactoryCity::parse(input);
-        assert_eq!(102, factory_city.compute_lowest_heat_loss());
+        assert_eq!(102, factory_city.compute_lowest_heat_loss(1, 3));
     }
-
 
     #[test]
-    fn simple() {
+    fn part2() {
         let input = "
-111
-191
-111
-111
-111
+
+2413432311323
+3215453535623
+3255245654254
+3446585845452
+4546657867536
+1438598798454
+4457876987766
+3637877979653
+4654967986887
+4564679986453
+1224686865563
+2546548887735
+4322674655533
+
 ";
         let factory_city = FactoryCity::parse(input);
-        assert_eq!(6, factory_city.compute_lowest_heat_loss());
+        assert_eq!(94, factory_city.compute_lowest_heat_loss(4, 10));
     }
 
+    #[test]
+    fn part2_tests() {
+        let input = "111111111111
+999999999991
+999999999991
+999999999991
+999999999991
+";
+        let factory_city = FactoryCity::parse(input);
+        assert_eq!(71, factory_city.compute_lowest_heat_loss(4, 10));
+    }
 
     #[test]
     fn rotates_rotates() {

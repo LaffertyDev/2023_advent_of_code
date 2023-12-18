@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet};
-use std::collections::VecDeque;
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 pub struct FactoryCity {
     grid: Vec<Vec<u64>>
@@ -17,6 +17,29 @@ struct PointedPoint {
 struct ExplorationVertex {
     point: PointedPoint,
     same_direction_count: usize
+}
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+struct ExplorationVortexWithCost {
+    vertex: ExplorationVertex,
+    cost: u64,
+    potential_total_cost: u64
+}
+
+impl PartialOrd for ExplorationVortexWithCost {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let cost = self.cost as i64 * -1;
+        let other_cost = other.cost as i64 * -1;
+        Some(cost.cmp(&other_cost))
+    }
+}
+
+impl Ord for ExplorationVortexWithCost {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cost = self.cost as i64 * -1;
+        let other_cost = other.cost as i64 * -1;
+        cost.cmp(&other_cost)
+    }
 }
 
 impl FactoryCity {
@@ -66,30 +89,34 @@ impl FactoryCity {
         let end_row = self.grid.len() - 1;
         let end_col = self.grid[0].len() - 1;
 
-        let mut vertices: VecDeque<(ExplorationVertex, u64)> = VecDeque::new();
-        vertices.push_front((ExplorationVertex {
-            point: PointedPoint {
-                row: 0,
-                col: 0,
-                vel_row: 0,
-                vel_col: 1,
+        let mut vertices: BinaryHeap<ExplorationVortexWithCost> = BinaryHeap::new();
+        vertices.push(ExplorationVortexWithCost {
+            vertex: ExplorationVertex {
+                point: PointedPoint {
+                    row: 0,
+                    col: 0,
+                    vel_row: 0,
+                    vel_col: 1,
+                },
+                same_direction_count: 1
             },
-            same_direction_count: 1
-        }, 0));
+            cost: 0,
+            potential_total_cost: 0
+        });
 
         let mut minimum_pathing_map: HashMap<ExplorationVertex, u64> = HashMap::new();
         let mut exploration_set = HashSet::new();
-        while let Some((vertex, cost_to_me)) = vertices.pop_front() {
-            if vertex.point.row == end_row && vertex.point.col == end_col {
+        while let Some(vertex) = vertices.pop() {
+            if vertex.vertex.point.row == end_row && vertex.vertex.point.col == end_col {
                 // we've reached the end
                 // if I implemented it correctly, we're done now
                 break;
             }
 
             let eligible_directions = [
-                (FactoryCity::rotate_velocity_clockwise((vertex.point.vel_row, vertex.point.vel_col)), 1),
-                (FactoryCity::rotate_velocity_counter_clockwise((vertex.point.vel_row, vertex.point.vel_col)), 1),
-                ((vertex.point.vel_row, vertex.point.vel_col), vertex.same_direction_count + 1)
+                (FactoryCity::rotate_velocity_clockwise((vertex.vertex.point.vel_row, vertex.vertex.point.vel_col)), 1),
+                (FactoryCity::rotate_velocity_counter_clockwise((vertex.vertex.point.vel_row, vertex.vertex.point.vel_col)), 1),
+                ((vertex.vertex.point.vel_row, vertex.vertex.point.vel_col), vertex.vertex.same_direction_count + 1)
             ];
 
             for ((p_vel_row, p_vel_col), duration) in eligible_directions {
@@ -98,61 +125,51 @@ impl FactoryCity {
                 let minimum_nodes_forward = if duration >= minimum_stopping_distance { 1 } else { minimum_stopping_distance + 1 - duration };
                 let forward_row = (p_vel_row * minimum_nodes_forward as i64).abs() as usize;
                 let forward_column = (p_vel_col * minimum_nodes_forward as i64).abs() as usize;
-                if (p_vel_row < 0 && vertex.point.row < forward_row) || (p_vel_row > 0 && vertex.point.row + forward_row > end_row) {
+                if (p_vel_row < 0 && vertex.vertex.point.row < forward_row) || (p_vel_row > 0 && vertex.vertex.point.row + forward_row > end_row) {
                     continue; // not enough room to go in this direction
                 }
 
-                if (p_vel_col < 0 && vertex.point.col < forward_column) || (p_vel_col > 0 && vertex.point.col + forward_column > end_col) {
+                if (p_vel_col < 0 && vertex.vertex.point.col < forward_column) || (p_vel_col > 0 && vertex.vertex.point.col + forward_column > end_col) {
                     continue; // not enough room to go in this direction
                 }
 
-                if vertex.same_direction_count < minimum_stopping_distance && p_vel_row != vertex.point.vel_row && p_vel_col != vertex.point.vel_col {
+                if vertex.vertex.same_direction_count < minimum_stopping_distance && p_vel_row != vertex.vertex.point.vel_row && p_vel_col != vertex.vertex.point.vel_col {
                     continue; // cannot turn yet, skip it
                 }
 
-                if p_vel_row == vertex.point.vel_row && p_vel_col == vertex.point.vel_col && duration > maximum_straight {
+                if p_vel_row == vertex.vertex.point.vel_row && p_vel_col == vertex.vertex.point.vel_col && duration > maximum_straight {
                     // discard this node if the minimum forward distance reaches an edge
                     continue; // cannot continue straight
                 }
 
-                let next_node_row = ((vertex.point.row as i64) + p_vel_row) as usize;
-                let next_node_col = ((vertex.point.col as i64) + p_vel_col) as usize;
+                let next_node_row = ((vertex.vertex.point.row as i64) + p_vel_row) as usize;
+                let next_node_col = ((vertex.vertex.point.col as i64) + p_vel_col) as usize;
 
-                let potential_cost = cost_to_me + self.grid[next_node_row][next_node_col];
+                let potential_cost = vertex.cost + self.grid[next_node_row][next_node_col];
 
-                let next_node = ExplorationVertex {
-                    point: PointedPoint {
-                        row: next_node_row,
-                        col: next_node_col,
-                        vel_row: p_vel_row,
-                        vel_col: p_vel_col,
+                let next_node = ExplorationVortexWithCost {
+                    vertex: ExplorationVertex {
+                        point: PointedPoint {
+                            row: next_node_row,
+                            col: next_node_col,
+                            vel_row: p_vel_row,
+                            vel_col: p_vel_col,
+                        },
+                        same_direction_count: duration
                     },
-                    same_direction_count: duration
+                    cost: potential_cost,
+                    potential_total_cost: potential_cost + (end_row - next_node_row) as u64 + (end_col - next_node_col) as u64
                 };
 
-                minimum_pathing_map.entry(next_node.clone()).and_modify(|current_cost| {
+                minimum_pathing_map.entry(next_node.vertex.clone()).and_modify(|current_cost| {
                     if potential_cost < *current_cost {
                         *current_cost = potential_cost
                     }
                 }).or_insert(potential_cost);
 
-                if !exploration_set.contains(&next_node) {
-                    // if rust had a better min heap...
-                    let mut inserted = false;
-                    for i in 0..vertices.len() {
-                        let (_, cost) = &vertices[i];
-                        if potential_cost < *cost {
-                            vertices.insert(i, (next_node.clone(), potential_cost));
-                            inserted = true;
-                            break;
-                        }
-                    }
-
-                    if !inserted {
-                        vertices.push_back((next_node.clone(), potential_cost as u64));
-                    }
-
-                    exploration_set.insert(next_node.clone());
+                if !exploration_set.contains(&next_node.vertex) {
+                    exploration_set.insert(next_node.vertex.clone());
+                    vertices.push(next_node);
                 }
             }
         }

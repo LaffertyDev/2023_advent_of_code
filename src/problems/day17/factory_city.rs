@@ -13,19 +13,6 @@ struct PointedPoint {
     vel_col: i64
 }
 
-impl PointedPoint {
-    fn get_index(&self) -> (usize, usize) {
-        (self.row, self.col)
-    }
-
-    #[allow(dead_code)]
-    fn get_previous(&self) -> (usize, usize) {
-        let prev_node_row = ((self.row as i64) - self.vel_row) as usize;
-        let prev_node_col = ((self.col as i64) - self.vel_col) as usize;
-        (prev_node_row, prev_node_col)
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Clone)]
 struct ExplorationVertex {
     point: PointedPoint,

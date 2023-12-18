@@ -66,8 +66,8 @@ impl FactoryCity {
         let end_row = self.grid.len() - 1;
         let end_col = self.grid[0].len() - 1;
 
-        let mut vertices: VecDeque<ExplorationVertex> = VecDeque::new();
-        vertices.push_front(ExplorationVertex {
+        let mut vertices: VecDeque<(ExplorationVertex, u64)> = VecDeque::new();
+        vertices.push_front((ExplorationVertex {
             point: PointedPoint {
                 row: 0,
                 col: 0,
@@ -75,11 +75,11 @@ impl FactoryCity {
                 vel_col: 1,
             },
             same_direction_count: 1
-        });
+        }, 0));
 
         let mut minimum_pathing_map: HashMap<ExplorationVertex, u64> = HashMap::new();
         let mut exploration_set = HashSet::new();
-        while let Some(vertex) = vertices.pop_front() {
+        while let Some((vertex, cost_to_me)) = vertices.pop_front() {
             if vertex.point.row == end_row && vertex.point.col == end_col {
                 // we've reached the end
                 // if I implemented it correctly, we're done now
@@ -118,8 +118,7 @@ impl FactoryCity {
                 let next_node_row = ((vertex.point.row as i64) + p_vel_row) as usize;
                 let next_node_col = ((vertex.point.col as i64) + p_vel_col) as usize;
 
-                let cost_to_me = minimum_pathing_map.get(&vertex).unwrap_or(&0);
-                let potential_cost = *cost_to_me + self.grid[next_node_row][next_node_col];
+                let potential_cost = cost_to_me + self.grid[next_node_row][next_node_col];
 
                 let next_node = ExplorationVertex {
                     point: PointedPoint {
@@ -132,50 +131,31 @@ impl FactoryCity {
                 };
 
                 minimum_pathing_map.entry(next_node.clone()).and_modify(|current_cost| {
-                    // is this path a better path than current?
                     if potential_cost < *current_cost {
                         *current_cost = potential_cost
                     }
                 }).or_insert(potential_cost);
 
-                // Optimization
-                // ExplorationSet contains the Future nodes
-                // i.e. if come from bottom, then top and right can share with left
                 if !exploration_set.contains(&next_node) {
-                    vertices.push_back(next_node.clone());
+                    // if rust had a better min heap...
+                    let mut inserted = false;
+                    for i in 0..vertices.len() {
+                        let (_, cost) = &vertices[i];
+                        if potential_cost < *cost {
+                            vertices.insert(i, (next_node.clone(), potential_cost));
+                            inserted = true;
+                            break;
+                        }
+                    }
+
+                    if !inserted {
+                        vertices.push_back((next_node.clone(), potential_cost as u64));
+                    }
+
                     exploration_set.insert(next_node.clone());
                 }
             }
-
-            vertices.make_contiguous().sort_by(|a, b| {
-                let a_cost =  minimum_pathing_map.get(&a).unwrap();
-                let b_cost =  minimum_pathing_map.get(&b).unwrap();
-                a_cost.cmp(b_cost)
-            });
         }
-
-        // println!("Debug:");
-        // for row in 0..self.grid.len() {
-        //     for col in 0..self.grid[0].len() {
-        //         if let Some(traversed) = FactoryCity::get_smallest_cost_to_point(&minimum_pathing_map, row, col, minimum_stopping_distance) {
-        //             if traversed < 10 {
-        //                 print!("  ");
-        //             } else if traversed < 100 {
-        //                 print!(" ");
-        //             } else {
-        //                 print!("");
-        //             }
-        //             print!("{}", traversed);
-        //         } else {
-        //             print!("  -");
-        //         }
-        //
-        //         print!("(+{})", self.grid[row][col]);
-        //         print!(", ");
-        //     }
-        //
-        //     print!("\r\n");
-        // }
 
         return FactoryCity::get_smallest_cost_to_point(&minimum_pathing_map, end_row, end_col, minimum_stopping_distance).unwrap();
     }

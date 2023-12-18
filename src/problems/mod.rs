@@ -1,6 +1,7 @@
 use crate::problems::aocday::AoCDay;
 
 pub mod aocday;
+mod shared;
 
 mod day0;
 mod day1;
@@ -19,8 +20,7 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
-mod shared;
-// pub mod day17;
+mod day17;
 // pub mod day18;
 // pub mod day19;
 // pub mod day20;
@@ -116,6 +116,11 @@ pub fn get_days() -> Vec<aocday::AoCDay> {
 			day: 16,
 			part1: Box::new(day16::part1::execute),
 			part2: Box::new(day16::part2::execute)
+		},
+		AoCDay {
+			day: 17,
+			part1: Box::new(day17::part1::execute),
+			part2: Box::new(day17::part2::execute)
 		},
     ]
 }

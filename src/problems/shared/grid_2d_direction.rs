@@ -16,15 +16,15 @@ impl Grid2dDirection {
         }
     }
 
-    pub fn parse(c: char) -> Option<Grid2dDirection> {
-        match c {
-            'U' => Some(Grid2dDirection::Up),
-            'L' => Some(Grid2dDirection::Left),
-            'D' => Some(Grid2dDirection::Down),
-            'R' => Some(Grid2dDirection::Right),
-            _ => None
-        }
-    }
+    // pub fn parse(c: char) -> Option<Grid2dDirection> {
+    //     match c {
+    //         'U' => Some(Grid2dDirection::Up),
+    //         'L' => Some(Grid2dDirection::Left),
+    //         'D' => Some(Grid2dDirection::Down),
+    //         'R' => Some(Grid2dDirection::Right),
+    //         _ => None
+    //     }
+    // }
 
     pub fn parse_str(c: &str) -> Option<Grid2dDirection> {
         match c {

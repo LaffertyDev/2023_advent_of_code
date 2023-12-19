@@ -4,8 +4,7 @@ use crate::problems::day18::dig_plan::DigPlan;
 enum GridSpace {
     Empty,
     Wall,
-    Outside,
-    Inside
+    Outside
 }
 
 impl GridSpace {
@@ -13,8 +12,7 @@ impl GridSpace {
         match self {
             GridSpace::Empty => print!("."),
             GridSpace::Wall => print!("#"),
-            GridSpace::Outside => print!("O"),
-            GridSpace::Inside => print!(" ")
+            GridSpace::Outside => print!("O")
         }
     }
 }
@@ -24,6 +22,7 @@ pub struct DigGrid {
 }
 
 impl DigGrid {
+    #[allow(dead_code)]
     pub fn pretty_print(&self) {
         // debug printer
         for row in 0..self.grid.len() {
@@ -35,6 +34,7 @@ impl DigGrid {
         }
     }
 
+    #[allow(dead_code)]
     pub fn count_inside(&mut self) -> u64 {
         // first, construct a map of the edges
         // then compute the number of tiles that are inside
@@ -108,6 +108,7 @@ impl DigGrid {
         dug_nodes
     }
 
+    #[allow(dead_code)]
     pub fn build_grid_from_plan(plan: &DigPlan) -> DigGrid {
         let max_left = plan.get_max_left();
         let max_down = plan.get_max_down();

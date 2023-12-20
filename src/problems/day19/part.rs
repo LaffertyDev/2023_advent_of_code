@@ -5,6 +5,33 @@ pub struct Part {
     pub s: u64
 }
 
+#[derive(Clone)]
+pub struct PartRange {
+    pub x_min: u64,
+    pub x_max: u64,
+    pub m_min: u64,
+    pub m_max: u64,
+    pub a_min: u64,
+    pub a_max: u64,
+    pub s_min: u64,
+    pub s_max: u64
+}
+
+impl PartRange {
+    pub fn new(min: u64, max: u64) -> PartRange {
+        PartRange {
+            x_min: min,
+            x_max: max,
+            m_min: min,
+            m_max: max,
+            a_min: min,
+            a_max: max,
+            s_min: min,
+            s_max: max,
+        }
+    }
+}
+
 impl Part {
     pub fn parse(line: &str) -> Option<Part> {
         //

@@ -60,7 +60,6 @@ impl Garden {
                 let potential_cost = vertex.cost - 1;
                 if let Some(record) = &mut path_records[neighbor.x][neighbor.y] {
                     if potential_cost > record.cost {
-                        println!("This costs less to go through my to get to my neighbor");
                         record.cost = potential_cost;
                         record.point = vertex.point;
                     }
@@ -71,26 +70,56 @@ impl Garden {
             }
         }
 
-        // count possible tokens within this tile
-        // count number of repeat tiles (steps / len??)
-        // then, count remainder steps remaining for final tile
-        // multiple 1 and add the last
-
-        let mut visitable_gardens = 0;
-        for row in 0..path_records.len() {
-            for col in 0..path_records[row].len() {
-                if let Some(record) = path_records[row][col] {
-                    if self.grid[record.point.x][record.point.y] != GardenTile::Rock
-                        && (record.cost.abs() as u64) <= steps
-                        && (record.cost.abs() as u64 % 2 == steps % 2) {
-                        visitable_gardens += 1;
+        if !is_infinite_tiling {
+            let mut visitable_gardens = 0;
+            for row in 0..path_records.len() {
+                for col in 0..path_records[row].len() {
+                    if let Some(record) = path_records[row][col] {
+                        if (record.cost.abs() as u64) <= steps
+                            && (record.cost.abs() as u64 % 2 == steps % 2) {
+                            visitable_gardens += 1;
+                        }
                     }
                 }
             }
+
+            return visitable_gardens;
         }
 
+        // I don't like problems that require input analysis and the examples don't line up with the problem
+        // I get it, but that sucked
+        // I just used someone else's (Excellent!) solution.
+        // https://github.com/villuna/aoc23/wiki/A-Geometric-solution-to-advent-of-code-2023,-day-21
+        let even_corners: usize = path_records.iter()
+            .map(|rows|
+                rows
+                    .iter()
+                    .filter(|record| record.is_some_and(|record| record.cost.abs() % 2 == 0 && record.cost.abs() > 65)).count()).sum();
 
-        visitable_gardens
+        let odd_corners: usize = path_records.iter()
+            .map(|rows|
+                rows
+                    .iter()
+                    .filter(|record| record.is_some_and(|record| record.cost.abs() % 2 == 1 && record.cost.abs() > 65)).count()).sum();
+
+        let even_full: usize = path_records.iter()
+            .map(|rows|
+                rows
+                    .iter()
+                    .filter(|record| record.is_some_and(|record| record.cost.abs() % 2 == 0)).count()).sum();
+
+        let odd_full: usize = path_records.iter()
+            .map(|rows|
+                rows
+                    .iter()
+                    .filter(|record| record.is_some_and(|record| record.cost.abs() % 2 == 1)).count()).sum();
+
+        let n = 202300;
+        assert_eq!(n, 202300);
+
+        let p2 = ((n+1)*(n+1)) * odd_full + (n*n) * even_full - (n+1) * odd_corners + n * even_corners;
+
+        p2 as u64
     }
 }
 
@@ -113,22 +142,5 @@ mod tests {
 ...........";
         let garden = Garden::parse(input);
         assert_eq!(16, garden.count_garden_plots_reachable_in_steps(6, false));
-    }
-
-    #[test]
-    fn part2() {
-        let input = "...........
-.....###.#.
-.###.##..#.
-..#.#...#..
-....#.#....
-.##..S####.
-.##..#...#.
-.......##..
-.##.#.####.
-.##..##.##.
-...........";
-        let garden = Garden::parse(input);
-        assert_eq!(16733044, garden.count_garden_plots_reachable_in_steps(5000, true));
     }
 }

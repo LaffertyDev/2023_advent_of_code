@@ -1,7 +1,7 @@
 use crate::problems::shared::grid_2d::GridTile;
 
 #[allow(dead_code)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GridPoint2D {
     pub x: usize,
     pub y: usize
